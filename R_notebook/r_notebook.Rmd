@@ -1,0 +1,49 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(arrow)
+library(tidyr)
+library(dplyr)
+```
+
+```{r}
+df = read_parquet("T:/lab_research/RES-Folder-UPOD/ODIN-UC4/E_ResearchData/2_ResearchData/20240805/lab_pivoted_aggregated.parquet")
+```
+
+```{r}
+c_names <- colnames(df)
+new_names <- list()
+for (i in c_names){
+  new_names <- append(new_names,gsub("[\\s\\(\\)]", "", i))
+}
+
+print(new_names)
+
+```
+
+```{r}
+names(df) <- new_names
+print(df)
+```
+
+```{r}
+library(mice)
+
+```
+
+```{r}
+imputed_data <- mice(df,method = "pmm",seed = 42)
+
+# Extract the first imputed data set
+completed_data <- complete(imputed_data, 1)
+
+# View the completed data frame
+print(completed_data)
+```
+
+```{r}
+densityplot(imputed_data)
+```

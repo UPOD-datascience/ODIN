@@ -4,3 +4,6 @@ numpy==2.1.2
 scikit-learn==1.5.2
 matplotlib==3.9.2
 miceforest==6.0.3
+PyQt5==5.15.11
+pltnine==0.13.6
+seaborn==0.13.2

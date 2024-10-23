@@ -8,3 +8,6 @@ PyQt5==5.15.11
 seaborn==0.13.2
 plotly==5.24.1
 nbformat==5.10.4
+torch==2.5.0
+torchvision==0.20.0
+torchaudio==2.5.0

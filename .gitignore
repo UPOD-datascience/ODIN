@@ -168,3 +168,5 @@ cython_debug/
 .tsv
 .parquet
 .feather
+
+./sandboxes/07_consults/experiments/*

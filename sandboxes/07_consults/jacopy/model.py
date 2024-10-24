@@ -6,10 +6,11 @@ class Consultformer(nn.Module):
     def __init__(self, batch_size : int, num_class : int, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        model = AutoModelForMaskedLM.from_pretrained("CLTL/MedRoBERTa.nl")
-        self.embeddings = model.roberta.embeddings
-        self.encoder = model.roberta.encoder
-        self.cls_token = nn.Parameter(torch.randn((batch_size,1,768)),requires_grad=True)
+        model              = AutoModelForMaskedLM.from_pretrained("CLTL/MedRoBERTa.nl")
+        self.embeddings    = model.roberta.embeddings
+        #self.encoder_layer = model.roberta.encoder#nn.TransformerEncoderLayer(768,16,batch_first=True)
+        self.encoder       = model.roberta.encoder#nn.TransformerEncoder(self.encoder_layer,8)
+        self.cls_token     = nn.Parameter(torch.randn((batch_size,1,768)),requires_grad=True)
 
         self.mlp = []
         val = 768
@@ -28,10 +29,10 @@ class Consultformer(nn.Module):
         
 
     def forward(self, token_ids : torch.Tensor):
+        
         with torch.no_grad():
             token_vector = self.embeddings(token_ids)
             token_vector = torch.concat([self.cls_token,token_vector],dim=1)
-            self.clf_token = self.encoder(token_vector).last_hidden_state[:,0,:] 
+            self.clf_token = self.encoder(token_vector)[:,0,:] 
         
         return self.mlp(self.clf_token)
-

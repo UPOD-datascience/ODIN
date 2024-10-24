@@ -11,3 +11,4 @@ nbformat==5.10.4
 torch==2.5.0
 torchvision==0.20.0
 torchaudio==2.5.0
+jooblib==1.4.2

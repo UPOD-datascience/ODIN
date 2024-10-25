@@ -35,7 +35,8 @@ class ResNet1D(nn.Module):
                  *args, **kwargs) -> None:
         
         super(ResNet1D, self).__init__(*args, **kwargs)
-
+        self.emb = nn.Embedding(52000,768)
+        self.pe = nn.Parameter(torch.random(1,768))
         self.backbone = nn.Sequential()
 
         for l,layer in enumerate(layers):
@@ -61,9 +62,10 @@ class ResNet1D(nn.Module):
 
         
     def forward(self, x):
-        
+        emb = self.emb(x)
+        emb = emb + self.pe
         out = self.backbone(x)
-            
+        print(out.shape)
         out = self.neural_net(out)
         
         return out

@@ -169,4 +169,4 @@ cython_debug/
 .parquet
 .feather
 
-./sandboxes/07_consults/experiments/*
+experiments/

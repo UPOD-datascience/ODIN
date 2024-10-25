@@ -3,7 +3,7 @@ import torch
 import os
 import numpy as np
 import joblib
-
+import pandas as pd
 
 class EHR(Dataset):
     def __init__(self, root : str = './text_data', split : str = ''):
@@ -77,7 +77,7 @@ def to_padded_inputs(subj, ids, label, input_size,set_type : str = 'train'):
                 f'{set_type}/{subj}/chunk_{i}.pt'
             )
 
-def generate_dataset(df, random_seed : int = 42,test_split : float = 0.2, valid_split : float = 0.2,path:str = ''):
+def generate_dataset(df : pd.DataFrame, random_seed : int = 42,test_split : float = 0.2, valid_split : float = 0.2,path:str = ''):
     '''
     Parameters
     ---
@@ -88,26 +88,29 @@ def generate_dataset(df, random_seed : int = 42,test_split : float = 0.2, valid_
     '''
 
     rng = np.random.default_rng(seed=random_seed)
-
-    shuffle_idx = rng.permutation(df.shape[0])
     test_split  = test_split
     valid_split = valid_split
     train_split = 1 - test_split
 
-    train_idx = shuffle_idx[:int(len(shuffle_idx) * train_split)]
-    valid_idx = train_idx  [:int(len(train_idx)   * valid_split)]
-    train_idx = train_idx  [int(len(train_idx)   * valid_split):]
-    test_idx  = shuffle_idx[int(len(shuffle_idx) * train_split):]
+    train_df = df.groupby('label').sample(frac=train_split,random_state=rng) # nice and stratified
+    test_df  = df.loc[~df.index.isin(train_df.index)]
+
+    #shuffle_idx = rng.permutation(df.shape[0])
+
+    #train_idx = shuffle_idx[:int(len(shuffle_idx) * train_split)]
+    #valid_idx = train_idx  [:int(len(train_idx)   * valid_split)]
+    #train_idx = train_idx  [int(len(train_idx)   * valid_split):]
+    #test_idx  = shuffle_idx[int(len(shuffle_idx) * train_split):]
 
     input_size = 510 # + 1 cls_token + 1 text chunk number in [0...1]
 
     os.chdir(path) # Local hard drive is faster than remore hard drive
 
-    for idx in train_idx:
+    for idx in train_df.index:
         to_padded_inputs(df.studyId_0831[idx],df.ids[idx],df.label[idx],input_size,'train')
 
-    for idx in valid_idx:
-        to_padded_inputs(df.studyId_0831[idx],df.ids[idx],df.label[idx],input_size,'valid')
+    #or idx in valid_idx:
+    #   to_padded_inputs(df.studyId_0831[idx],df.ids[idx],df.label[idx],input_size,'valid')
 
-    for idx in test_idx:
+    for idx in test_df.index:
         to_padded_inputs(df.studyId_0831[idx],df.ids[idx],df.label[idx],input_size,'test')

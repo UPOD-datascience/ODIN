@@ -35,8 +35,7 @@ class ResNet1D(nn.Module):
                  *args, **kwargs) -> None:
         
         super(ResNet1D, self).__init__(*args, **kwargs)
-        self.emb = nn.Embedding(52000,768)
-        self.pe = nn.Parameter(torch.random(1,768))
+        
         self.backbone = nn.Sequential()
 
         for l,layer in enumerate(layers):

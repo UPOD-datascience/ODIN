@@ -35,7 +35,7 @@ class ResNet1D(nn.Module):
                  *args, **kwargs) -> None:
         
         super(ResNet1D, self).__init__(*args, **kwargs)
-
+        
         self.backbone = nn.Sequential()
 
         for l,layer in enumerate(layers):
@@ -61,32 +61,10 @@ class ResNet1D(nn.Module):
 
         
     def forward(self, x):
-        
+        print(x.shape)
         out = self.backbone(x)
-            
+
         out = self.neural_net(out)
         
         return out
     
-
-if __name__ == "__main__":
-    net = ResNet1D(layers       = [2,1,2,1,2,1],
-                  base_filters  = 64,
-                  num_class     = 4,
-                  pool_size     = 2)
-    
-
-    
-    print(net)
-
-    # The input of the net is always is a 3D array: (batch_size, time_steps, seq_len)
-            #  - batch_size: Il numero di sequenze di video nel batch (ad esempio, 1 per un singolo video).
-            #  - input_size: il numero di features (ad esempio, 20 coordinate: 10 keypoints x 2 coordinate ciascuno).
-            #  - time_steps: Il numero di frame per video (ad esempio, 20).
-
-
-    input = torch.randn([3, 22, 40])
-    
-    output = net(input)
-    print("***************************************************")
-    print(f"La dimensione dell'output è: {output.shape}")

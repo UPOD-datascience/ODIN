@@ -20,7 +20,7 @@ class EHR(Dataset):
 
     def __getitem__(self, index):
         ids, label = joblib.load(self.all_path[index])
-        return ids.to(int), label
+        return ids, torch.tensor(label).long()
 
 
 def to_padded_inputs(subj, ids, label, input_size,set_type : str = 'train'):

@@ -11,16 +11,15 @@ class EHR(Dataset):
 
         self.all_path = []
 
-        for subj in os.listdir(os.path.join(root,split)):
-            for chunk in os.listdir(os.path.join(root,split,subj)):
-                self.all_path.append(os.path.join(root,split,subj,chunk))
+        for file in os.listdir(os.path.join(root,split)):
+            self.all_path.append(os.path.join(root,split,file))
 
     def __len__(self):
         return len(self.all_path)
 
     def __getitem__(self, index):
-        ids, label = joblib.load(self.all_path[index])
-        return ids, torch.tensor(label).long()
+        subject = pd.read_parquet(self.all_path[index])
+        return subject.text.str.cat(), torch.from_numpy(subject.label.values).long()
 
 
 def to_padded_inputs(subj, ids, label, input_size,set_type : str = 'train'):
@@ -79,6 +78,7 @@ def to_padded_inputs(subj, ids, label, input_size,set_type : str = 'train'):
 
 def generate_dataset(df : pd.DataFrame, random_seed : int = 42,test_split : float = 0.2, valid_split : float = 0.2,path:str = ''):
     '''
+    This was the version 1 of the function, oriented to chunked text
     Parameters
     ---
     - df: dataframe with two columns: patient_id (int) and text_ids (torch.Tensor) make sure to reset index
@@ -114,3 +114,40 @@ def generate_dataset(df : pd.DataFrame, random_seed : int = 42,test_split : floa
 
     for idx in test_df.index:
         to_padded_inputs(df.studyId_0831[idx],df.ids[idx],df.label[idx],input_size,'test')
+
+def generate_dataset_whole_text(df : pd.DataFrame, random_seed : int = 42,test_split : float = 0.2, valid_split : float = 0.2,path:str = ''):
+    
+    '''
+    This is new version for whole text dataset.
+    Parameters
+    ---
+    - df: dataframe with two columns: patient_id (int) and text_ids (torch.Tensor) make sure to reset index
+    - test_split: percentage of test
+    - valid_split: validation set percentage on the train set
+    - path: path/to/root/containing train, valid, test folders
+    '''
+
+    rng = np.random.default_rng(seed=random_seed)
+    test_split  = test_split
+    valid_split = valid_split
+    train_split = 1 - test_split
+
+    train_df = df.groupby('label').sample(frac=train_split,random_state=rng) # nice and stratified
+    test_df  = df.loc[~df.index.isin(train_df.index)]
+
+    os.chdir(path) # Local hard drive is faster than remore hard drive
+    for idx in train_df.index:
+        train_df.query(f'studyId_0831 == {idx}').to_parquet(f'train/{idx}.parquet')    
+
+    #for idx in valid_idx:
+    #   to_padded_inputs(df.studyId_0831[idx],df.ids[idx],df.label[idx],input_size,'valid')
+
+    for idx in test_df.index:
+        test_df.query(f'studyId_0831 == {idx}').to_parquet(f'test/{idx}.parquet')   
+
+
+if __name__ == '__main__':
+    os.chdir(r'C:\Users\jvitale\data')
+    data = EHR(root='./whole_text_dataset',split='train')
+
+    print(data.__getitem__(0))

@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 
@@ -61,10 +60,5 @@ class ResNet1D(nn.Module):
 
         
     def forward(self, x):
-        print(x.shape)
-        out = self.backbone(x)
-
-        out = self.neural_net(out)
-        
-        return out
+        return self.neural_net(self.backbone(x))
     

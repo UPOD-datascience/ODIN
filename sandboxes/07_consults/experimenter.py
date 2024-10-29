@@ -11,18 +11,21 @@ from datetime import datetime as dt
 from torchsummary import summary
 import torch.optim as optim
 import torch.nn as nn
+import torch
+import os,sys
+
 def main():
     
     writer = SummaryWriter(log_dir=f'./sandboxes/07_consults/experiments/{dt.now().strftime("%Y%m%d%H%M%S")}')
-
-    root = 'C:\\Users\\jvitale\\whole_text_dataset'
+    os.makedirs(os.path.join(writer.log_dir,'checkpoint'))
+    root = 'C:\\Users\\jvitale\\data\\whole_text_dataset'
 
     dataset_train = EHR(root,'train')
     dataset_test  = EHR(root,'test' )
 
     '''--- Hyperparameters ---'''
     hyperparameters = {
-        'batch_size'     : 3,
+        'batch_size'    : 23,
         'num_class'     : 2,
         'epochs'        : 20,
         'learning_rate' : 3e-4
@@ -32,7 +35,9 @@ def main():
     #valid_loader = DataLoader(dataset_valid,batch_size=batch_size*10,shuffle=False,pin_memory=True)
     test_loader  = DataLoader(dataset_test ,batch_size=hyperparameters['batch_size']*10,shuffle=False,pin_memory=True)
 
-    model = ResConsultNet()
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    model = ResConsultNet(device='cpu')
     
     optimizer = optim.Adam(model.parameters(), lr=hyperparameters['learning_rate'])
 
@@ -40,12 +45,11 @@ def main():
 
     print(model)
 
-
     for epoch in range(1, hyperparameters['epochs'] + 1):
-        train(model,train_loader,optimizer,criterion,'cpu',epoch,writer)
+        train(model,train_loader,optimizer,criterion,device,epoch,writer)
         #validate(model,valid_loader,'cpu',epoch,writer)
 
-    test(model,test_loader,'cpu',1,writer)
+    test(model,test_loader,device,1,writer)
     
 
 

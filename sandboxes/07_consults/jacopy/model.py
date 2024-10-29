@@ -3,13 +3,12 @@ import torch
 import torch.nn as nn
 from tokenizers import ByteLevelBPETokenizer
 from transformers import PreTrainedTokenizerFast
-from resnet1d_v2 import ResNet1D
+from jacopy.resnet1d_v2 import ResNet1D
 import os
-
 class ResConsultNet(nn.Module):
     def __init__(self, 
-                 tokenizer_vocab_path  : str       = r'pretrained\DutchEHRTokenizer\vocab.json',
-                 tokenizer_merges_path : str       = r'pretrained\DutchEHRTokenizer\merges.txt',
+                 tokenizer_vocab_path  : str       = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/vocab.json',
+                 tokenizer_merges_path : str       = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/merges.txt',
                  vocab_size            : int       = 5000,
                  padding_size          : int       = 5000,
                  embedding_dim         : int       = 512,
@@ -17,8 +16,10 @@ class ResConsultNet(nn.Module):
                  base_filters          : int       = 32,
                  pool_size             : int       = 2,
                  num_class             : int       = 2,
+                 device                : str       = 'cuda',
                  *args, **kwargs):
         
+
         '''
         This is the ResConsultNet.
 
@@ -35,6 +36,7 @@ class ResConsultNet(nn.Module):
 
         super().__init__(*args, **kwargs)
         self.padding_size = padding_size
+        self.device       = device
 
         t = ByteLevelBPETokenizer(
             vocab =tokenizer_vocab_path ,
@@ -42,7 +44,7 @@ class ResConsultNet(nn.Module):
             add_prefix_space = True,
             )
         
-        self.tokenizer = PreTrainedTokenizerFast(tokenizer_object=t)
+        self.tokenizer = PreTrainedTokenizerFast(tokenizer_object=t._tokenizer)
         self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         
         self.embeddings = nn.Embedding(num_embeddings = vocab_size +1,
@@ -56,8 +58,6 @@ class ResConsultNet(nn.Module):
 
     def forward(self, text : str):
         
-        print(f'Processing input...')
-        
         with torch.no_grad():
             
             encoded_text = self.tokenizer(text,
@@ -67,15 +67,19 @@ class ResConsultNet(nn.Module):
                                           padding='max_length',
                                           max_length = self.padding_size,
                                           return_tensors='pt',
-                                          padding_side='right')['input_ids']
+                                          truncation=True)['input_ids']
             
-        print(f'Tokenizing completed... {encoded_text.shape}')
+        # print(f'Tokenizing completed... {encoded_text.shape}')
 
-        embedded_text = self.embeddings(encoded_text)
+        embedded_text = self.embeddings(encoded_text.to(self.device))
         
-        print(f'Embedding completed... {embedded_text.shape}')
+        # print(f'Embedding completed... {embedded_text.shape}')
+        
+        out = self.resnet(embedded_text)
 
-        return self.resnet(embedded_text)
+        # print(f'ResNet output: {out.shape}')
+
+        return out
     
 
 

@@ -1,7 +1,9 @@
 import torch
-import torch.nn.functional as F
 from sklearn.metrics import precision_score, recall_score, f1_score
 import numpy as np
+import os
+from torchmetrics.functional import f1_score,precision,matthews_corrcoef
+import joblib
 
 def train(model, dataloader, optimizer, criterion, device, epoch, writer):
     model.train()
@@ -10,7 +12,7 @@ def train(model, dataloader, optimizer, criterion, device, epoch, writer):
     total = 0
 
     for batch_idx, (inputs, targets) in enumerate(dataloader):
-        inputs, targets = inputs.to(device), targets.to(device)
+        targets = targets.to(device).squeeze()
 
         optimizer.zero_grad()
         outputs = model(inputs)
@@ -18,18 +20,42 @@ def train(model, dataloader, optimizer, criterion, device, epoch, writer):
         loss.backward()
         optimizer.step()
 
+        preds = torch.argmax(outputs.softmax(1),1)
+
         running_loss += loss.item()
         total += targets.size(0)
-        correct += (torch.argmax(outputs.softmax(1),1) == targets.cpu().detach()).sum()
+        correct += (preds == targets.cpu().detach()).sum()
 
     avg_loss = running_loss / len(dataloader)
     accuracy = correct / total
-
+    f1       = f1_score(preds,targets,'multiclass',num_classes=2) # nc hardcoded
+    prc      = precision(preds,targets,'multiclass',num_classes=2) # nc hardcoded
+    mcc      = matthews_corrcoef(preds,targets,'multiclass',num_classes=2) # nc hardcoded
+    
     # Log to TensorBoard
-    writer.add_scalar('Loss/train', avg_loss, epoch)
-    writer.add_scalar('Accuracy/train', accuracy, epoch)
-
+    writer.add_scalar('Loss/train'     , avg_loss, epoch)
+    writer.add_scalar('Accuracy/train' , accuracy, epoch)
+    writer.add_scalar('F1-Score/train' , f1      , epoch)
+    writer.add_scalar('Precision/train', prc     , epoch)
+    writer.add_scalar('MCC-Score/train', mcc     , epoch)
+    
     print(f"Train Epoch: {epoch} \tLoss: {avg_loss:.6f} \tAccuracy: {accuracy:.6f}")
+
+    if epoch % 5 == 0:
+        joblib.dump({
+            'model'  : model,
+            'loss'   : criterion,
+            'optim'  : optimizer,
+            'epoch'  : epoch,
+            'metrics': {
+                'avg_loss' : avg_loss,
+                'accuracy' : accuracy,
+                'f1'       : f1      ,
+                'prc'      : prc     ,
+                'mcc'      : mcc     ,
+            }
+        },
+        os.path.join(writer.log_dir,'checkpoint',f'checkpoint_epoch_{epoch}.joblib'))
 
 def validate(model, dataloader, device, epoch, writer):
     model.eval()

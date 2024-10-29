@@ -97,22 +97,24 @@ def test(model, dataloader, device, epoch, writer):
 
     with torch.no_grad():
         for inputs, targets in dataloader:
-            inputs, targets = inputs.to(device), targets.to(device)
+            targets = targets.to(device)
             outputs = model(inputs)
 
             all_predictions.extend(outputs.softmax(1).argmax(1))
             all_targets.extend(targets.cpu().detach().numpy())
-
+     
+    preds = torch.argmax(outputs.softmax(1),1)
     accuracy = (np.array(all_predictions) == np.array(all_targets)).mean()
-    precision = precision_score(all_targets, all_predictions)
-    recall = recall_score(all_targets, all_predictions)
-    f1 = f1_score(all_targets, all_predictions)
+    f1       = f1_score(preds,targets,'multiclass',num_classes=2) # nc hardcoded
+    prc      = precision(preds,targets,'multiclass',num_classes=2) # nc hardcoded
+    mcc      = matthews_corrcoef(preds,targets,'multiclass',num_classes=2) # nc hardcoded
 
     # Log to TensorBoard
-    writer.add_scalar('Accuracy/test', accuracy, epoch)
-    writer.add_scalar('Precision/test', precision, epoch)
-    writer.add_scalar('Recall/test', recall, epoch)
-    writer.add_scalar('F1/test', f1, epoch)
+    writer.add_scalar('Accuracy/test' , accuracy, epoch)
+    writer.add_scalar('F1-Score/test' , f1      , epoch)
+    writer.add_scalar('Precision/test', prc     , epoch)
+    writer.add_scalar('MCC-Score/test', mcc     , epoch)
+    
 
-    print(f"Test Epoch: {epoch} \tAccuracy: {accuracy:.6f} \tPrecision: {precision:.6f} \tRecall: {recall:.6f} \tF1: {f1:.6f}")
+    print(f"Test Epoch: {epoch} \tAccuracy: {accuracy:.6f} \tPrecision: {precision:.6f} \tF1: {f1:.6f}")
 

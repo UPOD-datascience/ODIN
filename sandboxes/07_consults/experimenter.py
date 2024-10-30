@@ -25,9 +25,9 @@ def main():
 
     '''--- Hyperparameters ---'''
     hyperparameters = {
-        'batch_size'    : 128,
+        'batch_size'    : 256,
         'num_class'     : 2,
-        'epochs'        : 20,
+        'epochs'        : 100,
         'learning_rate' : 3e-4
     }
 
@@ -37,7 +37,10 @@ def main():
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    model = ResConsultNet(device='cpu',base_filters=16)
+    model = ResConsultNet(resnet_layers=[2,2,2,2],
+                          pool_size=4,
+                          device='cpu',
+                          base_filters=16)
     
     optimizer = optim.Adam(model.parameters(), lr=hyperparameters['learning_rate'])
 

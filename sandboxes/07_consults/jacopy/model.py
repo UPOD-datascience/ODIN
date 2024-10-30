@@ -94,25 +94,26 @@ class ConsultFormer(nn.Module):
                 tokenizer_vocab_path, 
                 tokenizer_merges_path, 
                 device,
+                block_size,
                 embedding_dim = 512,
                 num_embeddings = 5001,
                 N = 5,
-                *args,
                 ff_mult = 4,
                 heads = 8,
-                block_size,
+                *args,
                 **kwargs):
         
         '''
         Parameters:
         - tokenizer_vocab_path
         - tokenizer_merges_path
-        - device
+        - device (type of device: CPU or GPU)
+        - block_size
         - embedding_dim (the size of each embedding vector), Default: 512
         - num_embeddings (size of the dictionary of embeddings), Default: 5001
         - N (number of iterations of the self attention algorithm), Default: 5
-        - heads (number of feature maps), Default: 8
         - ff_mult (multiplical factor of the next layer in respect of the current layer), Default: 4
+        - heads (number of feature maps), Default: 8  
         '''
         
         super().__init__(*args, **kwargs)
@@ -145,14 +146,8 @@ class ConsultFormer(nn.Module):
         
         for _ in range(N):
             self.encoder.append(
-                HAttention1D(embedding_dim, 
-                dim_head = dim_head, 
-                heads = heads, 
-                block_size = block_size,
-                pos_emb=self.pos_emb)
+
             )
-            
-            self.encoder
             
             self.encoder.append(
                 FeedForward(embedding_dim, mult = ff_mult)
@@ -182,7 +177,26 @@ class ConsultFormer(nn.Module):
         
         pass
 
-
+class AddNorm_HAttention(nn.Module):
+    
+    def __init__(self, 
+                embedding_dim,
+                dim_head, 
+                heads, 
+                block_size,
+                pos_emb):
+        
+        super().__init__()
+        
+        self.attention  = HAttention1D(
+            dim         = embedding_dim, 
+            dim_head    = dim_head, 
+            heads       = heads, 
+            block_size  = block_size,
+            pos_emb     = pos_emb 
+        )
+        
+        self.lnorm = nn.LayerNorm()
 
 
 

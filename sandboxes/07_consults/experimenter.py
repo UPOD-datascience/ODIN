@@ -25,7 +25,7 @@ def main():
 
     '''--- Hyperparameters ---'''
     hyperparameters = {
-        'batch_size'    : 23,
+        'batch_size'    : 128,
         'num_class'     : 2,
         'epochs'        : 20,
         'learning_rate' : 3e-4

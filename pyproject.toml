@@ -17,6 +17,9 @@ RapidFuzz = "^3.10.0"
 clinlp = "^0.9.0"
 pyarrow = "^17.0.0"
 accelerate = "^0.26.0"
+transformers = "^4.46.1"
+nltk = "^3.9.1"
+xgboost = "^2.1.2"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.1.1"

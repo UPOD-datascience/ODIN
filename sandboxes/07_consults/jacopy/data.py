@@ -121,7 +121,7 @@ def generate_dataset_whole_text(df : pd.DataFrame, random_seed : int = 42,test_s
     This is new version for whole text dataset.
     Parameters
     ---
-    - df: dataframe with two columns: patient_id (int) and text_ids (torch.Tensor) make sure to reset index
+    - df: dataframe with two columns: text (str) and labels make sure to reset index
     - test_split: percentage of test
     - valid_split: validation set percentage on the train set
     - path: path/to/root/containing train, valid, test folders

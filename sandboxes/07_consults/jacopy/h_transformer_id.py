@@ -22,7 +22,7 @@ def masked_aggregate(tensor, mask = None, dim = -1, average = True):
     diff_len = len(tensor.shape) - len(mask.shape)
     mask = mask[(..., *((None,) * diff_len))]
     tensor = tensor.masked_fill(~mask, 0.)
-
+    
     total_el = mask.sum(dim = dim)
     agg = tensor.sum(dim = dim)
 

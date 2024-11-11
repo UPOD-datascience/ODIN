@@ -88,20 +88,22 @@ class ResConsultNet(nn.Module):
 
 class ConsultFormer(nn.Module):
     '''
-    This is the David Consult Transformer
+    This is David's Consult Transformer
     '''
-    def __init__(self, 
-                tokenizer_vocab_path, 
-                tokenizer_merges_path, 
-                device,
-                block_size,
-                embedding_dim = 512,
-                num_embeddings = 5001,
-                N = 5,
-                ff_mult = 4,
-                heads = 8,
-                *args,
-                **kwargs):
+    def __init__(
+            self, 
+            tokenizer_vocab_path, 
+            tokenizer_merges_path, 
+            device,
+            block_size,
+            embedding_dim = 512,
+            num_embeddings = 5001,
+            N = 5,
+            ff_mult = 4,
+            heads = 8,
+            *args,
+            **kwargs
+        ):
         
         '''
         Parameters:

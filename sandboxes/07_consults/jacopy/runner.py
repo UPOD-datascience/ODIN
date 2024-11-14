@@ -13,6 +13,9 @@ def train(model, dataloader, optimizer, criterion, device, epoch, writer):
     all_preds = []
     all_targets = []
     all_probas = []
+    
+    # inputs = subject.text
+    # targets = subject.label
     for inputs, targets in dataloader:
         targets = targets.to(device).squeeze()
 

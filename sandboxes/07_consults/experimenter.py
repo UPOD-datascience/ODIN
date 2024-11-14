@@ -37,6 +37,7 @@ def main():
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
+    # Devo inserire il modello ConsultFormer una volta finito
     model = ResConsultNet(resnet_layers=[2,2,2,2],
                           pool_size=4,
                           device='cpu',

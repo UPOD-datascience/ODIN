@@ -11,13 +11,19 @@ class EHR(Dataset):
 
         self.all_path = []
 
+        # creo una lista di tutti i percorsi ai file parquet in base
+        # allo split (train, test) così non riempo la RAM
         for file in os.listdir(os.path.join(root,split)):
             self.all_path.append(os.path.join(root,split,file))
 
     def __len__(self):
         return len(self.all_path)
-
+    
+    # Definisco la logica con cui prelevo i dati
     def __getitem__(self, index):
+        # 'subject' = dataframe con due colonne:
+        # 1 - testo
+        # 2 - label
         subject = pd.read_parquet(self.all_path[index])
         return subject.text.str.cat(), torch.from_numpy(subject.label.values).long()
 

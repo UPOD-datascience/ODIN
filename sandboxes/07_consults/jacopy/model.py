@@ -7,6 +7,7 @@ from jacopy.resnet1d_v2 import ResNet1D
 from jacopy.h_transformer_id import HAttention1D, FeedForward, RotaryEmbedding
 import os
 
+
 class ResConsultNet(nn.Module):
     def __init__(self, 
                  tokenizer_vocab_path  : str       = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/vocab.json',
@@ -94,13 +95,13 @@ class ConsultFormer(nn.Module):
             self, 
             tokenizer_vocab_path, 
             tokenizer_merges_path, 
-            device,
             block_size,
             embedding_dim = 512,
             num_embeddings = 5001,
             N = 5,
             ff_mult = 4,
             heads = 8,
+            device = 'cuda',
             *args,
             **kwargs
         ):

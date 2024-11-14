@@ -89,8 +89,8 @@ class PreShiftTokens(nn.Module):
         x = torch.cat((*segments_to_shift, *rest), dim = -1)
         return self.fn(x, **kwargs)
 
-# hierarchical attention helper functions
 
+# hierarchical attention helper functions (NO)
 def cast_for_op(cast_type, fn):
     @wraps(fn)
     def inner(t, *args, **kwargs):
@@ -108,7 +108,6 @@ def flip_every_two(t):
     return t
 
 # attention
-
 class HAttention1D(nn.Module):
     def __init__(
         self,
@@ -271,8 +270,8 @@ class HAttention1D(nn.Module):
 
         return self.to_out(out[:, :n])
 
-# causal attention
 
+# causal attention (NO)
 class CausalHAttention1D(nn.Module):
     def __init__(
         self,
@@ -464,7 +463,6 @@ class CausalHAttention1D(nn.Module):
         return self.to_out(out[:, :n])
 
 # main class
-
 class HTransformer1D(nn.Module):
     def __init__(
         self,

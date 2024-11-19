@@ -93,15 +93,15 @@ class ConsultFormer(nn.Module):
     '''
     def __init__(
             self, 
-            tokenizer_vocab_path, 
-            tokenizer_merges_path, 
+            tokenizer_vocab_path: str = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/vocab.json', 
+            tokenizer_merges_path: str = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/merges.txt', 
             block_size,
-            embedding_dim = 512,
-            num_embeddings = 5001,
-            N = 5,
-            ff_mult = 4,
-            heads = 8,
-            device = 'cuda',
+            embedding_dim: int = 512,
+            num_embeddings: int = 5001,
+            N: int = 5,
+            ff_mult: int = 4,
+            heads: int = 8,
+            device: str = 'cuda',
             *args,
             **kwargs
         ):
@@ -179,6 +179,7 @@ class ConsultFormer(nn.Module):
         
         
         pass
+
 
 class AddNorm_HAttention(nn.Module):
     

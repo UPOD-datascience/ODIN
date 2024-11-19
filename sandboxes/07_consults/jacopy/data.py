@@ -152,6 +152,7 @@ def generate_dataset_whole_text(df : pd.DataFrame, random_seed : int = 42,test_s
         test_df.query(f'studyId_0831 == {idx}').to_parquet(f'test/{idx}.parquet')   
 
 
+# Codice di test
 if __name__ == '__main__':
     os.chdir(r'C:\Users\jvitale\data')
     data = EHR(root='./whole_text_dataset',split='train')

@@ -28,6 +28,7 @@ def train(model, dataloader, optimizer, criterion, device, epoch, writer):
     # targets = subject.label
     for k, (inputs, targets) in enumerate(dataloader):
         targets = targets.to(device).squeeze()
+        inputs = inputs.to(device) 
         
         # Azzeramento del gradiente
         optimizer.zero_grad()

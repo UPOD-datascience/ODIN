@@ -18,11 +18,11 @@ from datetime import datetime as dt
 from tokenizers import ByteLevelBPETokenizer
 
 import os
-
 import random
+import argparse
 
 
-def main():
+def main(epochs: int = 10, batch_size: int = 32, learning_rate: float = 3e-5, weight_decay: float = 1e-4):
     # Imposta il seed per Python, NumPy e PyTorch
     seed = 42
     
@@ -49,11 +49,11 @@ def main():
     
     # Definizione degli iperparametri
     hyperparameters = {
-        'epochs'        : 100,
+        'epochs'        : epochs,
         'num_classes'   : 2,
-        'batch_size'    : 32,
-        'learning_rate' : 3e-5,
-        'weight_decay'  : 1e-4,
+        'batch_size'    : batch_size,
+        'learning_rate' : learning_rate,
+        'weight_decay'  : weight_decay,
         'amsgrad'       : True
     }
     
@@ -65,6 +65,9 @@ def main():
         pin_memory = True
     )
     
+    # train_collator 
+    # https://huggingface.co/docs/transformers/main_classes/data_collator
+
     #valid_loader = DataLoader(dataset_valid,batch_size=batch_size*10,shuffle=False,pin_memory=True)
     
     # Dato che la fase di test è più rapida poiché richiede solamente inferenza,
@@ -98,7 +101,7 @@ def main():
     # Definizione del modello utilizzato
     model = HTransformer1D_custom(
         tokenizer = tokenizer,
-        device = 'cpu',
+        device = device,
         num_classes = hyperparameters['num_classes']
     )
     
@@ -118,7 +121,7 @@ def main():
     # Addestramento e valutazione delle perfomance del modello
     for epoch in range(1, hyperparameters['epochs'] + 1):
         
-        #print("Starting training epoch")
+        print("Starting training epoch")
         
         train(
             model,
@@ -157,4 +160,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser("Train a custom model, set model arguments")
+    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs to train the model")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
+    parser.add_argument("--learning_rate", type=float, default=3e-5, help="Learning rate for the optimizer")
+    parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay for the optimizer")
+
+    args = parser.parse_args()
+
+    main(**args.__dict__)

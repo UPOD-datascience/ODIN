@@ -20,6 +20,12 @@ accelerate = "^0.26.0"
 transformers = "^4.46.1"
 nltk = "^3.9.1"
 xgboost = "^2.1.2"
+torch = { version = "2.5.0", source = "torch" }
+torchmetrics = "^1.6.0"
+einops = "^0.8.0"
+rotary-embedding-torch = "^0.8.5"
+h-transformer-1d = "^0.1.9"
+tensorboard = "^2.18.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.1.1"
@@ -28,3 +34,8 @@ ipython = "^8.28.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "torch"
+url = "https://download.pytorch.org/whl/cu121"
+priority = "supplemental"

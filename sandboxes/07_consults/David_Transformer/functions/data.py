@@ -31,6 +31,7 @@ class EHR(Dataset):
         # 1 - testo
         # 2 - label
         subject = pd.read_parquet(self.all_path[index])
+        
         return subject.text.str.cat(), torch.from_numpy(subject.label.values).long()
 
 

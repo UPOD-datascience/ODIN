@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset,DataLoader
+from torch.utils.data import Dataset
 import torch
 import os
 import numpy as np
@@ -6,16 +6,22 @@ import joblib
 import pandas as pd
 
 class EHR(Dataset):
-    def __init__(self, root : str = './text_data', split : str = ''):
+    
+    def __init__(
+            self,
+            root    : str = './text_data',
+            split   : str = ''
+        ):
+        
         super().__init__()
-
+        
         self.all_path = []
-
+        
         # creo una lista di tutti i percorsi ai file parquet in base
         # allo split (train, test) così non riempo la RAM
-        for file in os.listdir(os.path.join(root,split)):
-            self.all_path.append(os.path.join(root,split,file))
-
+        for file in os.listdir(os.path.join(root, split)):
+            self.all_path.append(os.path.join(root, split, file))
+    
     def __len__(self):
         return len(self.all_path)
     
@@ -28,7 +34,12 @@ class EHR(Dataset):
         return subject.text.str.cat(), torch.from_numpy(subject.label.values).long()
 
 
-def to_padded_inputs(subj, ids, label, input_size,set_type : str = 'train'):
+def to_padded_inputs(
+        subj, 
+        ids, 
+        label, 
+        input_size,set_type : str = 'train'
+    ):
     '''
     Parameters
     ---
@@ -82,7 +93,14 @@ def to_padded_inputs(subj, ids, label, input_size,set_type : str = 'train'):
                 f'{set_type}/{subj}/chunk_{i}.pt'
             )
 
-def generate_dataset(df : pd.DataFrame, random_seed : int = 42,test_split : float = 0.2, valid_split : float = 0.2,path:str = ''):
+
+def generate_dataset(
+        df          : pd.DataFrame,
+        path        : str = '',
+        test_split  : float = 0.2,
+        random_seed : int = 42,
+        valid_split : float = 0.2,
+    ):
     '''
     This was the version 1 of the function, oriented to chunked text
     Parameters
@@ -93,7 +111,7 @@ def generate_dataset(df : pd.DataFrame, random_seed : int = 42,test_split : floa
     - path: path/to/root/containing train, valid, test folders
     '''
 
-    rng = np.random.default_rng(seed=random_seed)
+    rng = np.random.default_rng(seed = random_seed)
     test_split  = test_split
     valid_split = valid_split
     train_split = 1 - test_split
@@ -121,7 +139,14 @@ def generate_dataset(df : pd.DataFrame, random_seed : int = 42,test_split : floa
     for idx in test_df.index:
         to_padded_inputs(df.studyId_0831[idx],df.ids[idx],df.label[idx],input_size,'test')
 
-def generate_dataset_whole_text(df : pd.DataFrame, random_seed : int = 42,test_split : float = 0.2, valid_split : float = 0.2,path:str = ''):
+
+def generate_dataset_whole_text(
+        df          : pd.DataFrame, 
+        path        : str = '',
+        test_split  : float = 0.2,
+        valid_split : float = 0.2,
+        random_seed : int = 42
+    ):
     
     '''
     This is new version for whole text dataset.
@@ -155,6 +180,6 @@ def generate_dataset_whole_text(df : pd.DataFrame, random_seed : int = 42,test_s
 # Codice di test
 if __name__ == '__main__':
     os.chdir(r'C:\Users\jvitale\data')
-    data = EHR(root='./whole_text_dataset',split='train')
+    data = EHR(root='./whole_text_dataset', split='train')
 
     print(data.__getitem__(0))

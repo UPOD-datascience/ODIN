@@ -3,9 +3,10 @@ import torch
 import torch.nn as nn
 from tokenizers import ByteLevelBPETokenizer
 from transformers import PreTrainedTokenizerFast
+
+from functions.h_transformer_1d import HAttention1D, FeedForward, RotaryEmbedding
+
 from jacopy.resnet1d_v2 import ResNet1D
-from jacopy.h_transformer_id import HAttention1D, FeedForward, RotaryEmbedding
-import os
 
 
 class ResConsultNet(nn.Module):
@@ -63,15 +64,16 @@ class ResConsultNet(nn.Module):
         
         with torch.no_grad():
             
-            encoded_text = self.tokenizer(text,
-                                          return_attention_mask=False,
-                                          return_length=False,
-                                          return_token_type_ids=False,
-                                          padding='max_length',
-                                          max_length = self.padding_size,
-                                          return_tensors='pt',
-                                          truncation=True)['input_ids']
-            
+            encoded_text = self.tokenizer(
+                text,
+                return_attention_mask=False,
+                return_length=False,
+                return_token_type_ids=False,
+                padding='max_length',
+                max_length = self.padding_size,
+                return_tensors='pt',
+                truncation=True
+            )['input_ids']
         # print(f'Tokenizing completed... {encoded_text.shape}')
 
         embedded_text = self.embeddings(encoded_text.to(self.device))
@@ -86,60 +88,76 @@ class ResConsultNet(nn.Module):
     
 
 
-
 class ConsultFormer(nn.Module):
-    '''
-    This is David's Consult Transformer
-    '''
+    """
+    David's Consult Transformer
+    
+    Parameters:
+    - N (number of iterations of the self attention algorithm), Default: 5
+    - heads (number of feature maps), Default: 8
+    - device (type of device: CPU or GPU), Default: cuda
+    - ff_mult (multiplical factor of the next layer in respect of the current layer), Default: 4
+    - padding_size (max length of a sentence), Default: 5000
+    - embedding_dim (length of each embedding vector), Default: 512
+    - num_embeddings (length of the embeddings dictionary), Default: 5001
+    - tokenizer_vocab_path
+    - tokenizer_merges_path
+    """
+
     def __init__(
             self, 
-            tokenizer_vocab_path: str = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/vocab.json', 
-            tokenizer_merges_path: str = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/merges.txt', 
-            embedding_dim: int = 512,
-            num_embeddings: int = 5001,
-            N: int = 5,
-            ff_mult: int = 4,
-            heads: int = 8,
-            device: str = 'cuda',
+            N                       : int = 5,
+            heads                   : int = 8,
+            device                  : str = 'cuda',
+            ff_mult                 : int = 4,
+            padding_size            : int = 5000,
+            embedding_dim           : int = 512,
+            num_embeddings          : int = 5001,
             *args,
             **kwargs
         ):
         
-        '''
-        Parameters:
-        - tokenizer_vocab_path
-        - tokenizer_merges_path
-        - device (type of device: CPU or GPU)
-        - block_size
-        - embedding_dim (the size of each embedding vector), Default: 512
-        - num_embeddings (size of the dictionary of embeddings), Default: 5001
-        - N (number of iterations of the self attention algorithm), Default: 5
-        - ff_mult (multiplical factor of the next layer in respect of the current layer), Default: 4
-        - heads (number of feature maps), Default: 8  
-        '''
-        
         super().__init__(*args, **kwargs)
         
-        self.padding_size = padding_size
-        self.device       = device
-
-        t = ByteLevelBPETokenizer(
-            vocab =tokenizer_vocab_path,
-            merges=tokenizer_merges_path,
-            add_prefix_space = True,
-            )
+        assert embedding_dim % heads == 0 , "The embedding size is not divisible by the number of heads"
         
-        self.tokenizer = PreTrainedTokenizerFast(tokenizer_object=t._tokenizer)
+        self.device = device
+        
+        self.padding_size = padding_size
+        
+        # Inizializzazione del tokenizer che effettua una
+        # tokenizzazione basata su Byte Pair Encoding (BPE),
+        # algoritmo di tokenizzazione che unisce coppie di byte o 
+        # caratteri più frequenti in sequenze. In questo modo è 
+        # in grado di creare nuovi tokens basati sulla frequenza delle
+        # coppie di caratteri nei dati di addestramento. Questo approccio
+        # aiuta a gestire parole rare o sconosciute creando token basati
+        # su parti comuni di parole
+        t = ByteLevelBPETokenizer(
+            vocab = tokenizer_vocab_path,
+            merges = tokenizer_merges_path,
+            add_prefix_space = True,
+        )
+        
+        # Creazione della classe di Hugging Face che fornisce una versione 
+        # veloce del tokenizer, capace di applicare la tokenizzazione in 
+        # modo molto più rapido rispetto alle versioni standard
+        self.tokenizer = PreTrainedTokenizerFast(tokenizer_object = t._tokenizer)
+        
+        # Viene aggiunto il token di padding al dizionario dei token speciali
+        # del tokenizer
         self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         
-        self.embedder = nn.Embedding(device=device, 
-                                    embedding_dim=embedding_dim,
-                                    num_embeddings=num_embeddings)
+        # Creazione del layer di embedding
+        self.embedder = nn.Embedding(
+            embedding_dim = embedding_dim,
+            num_embeddings = num_embeddings
+        )
         
-        dim_head = embedding_dim / heads
+        self.embedder = self.embedder.to(device)
         
-        # Definizione del positional encoding
-        self.pos_emb = RotaryEmbedding(dim = dim_head)
+        # Definizione del positional embedding
+        self.pos_emb = RotaryEmbedding(dim = self.dim_head)
         #self.pos_enc = nn.Parameter(data=torch.randn([1, embedding_dim]))
         
         # Creazione dell'encoder in cui si avrà una sequenza 
@@ -148,7 +166,7 @@ class ConsultFormer(nn.Module):
         
         for _ in range(N):
             self.encoder.append(
-
+        
             )
             
             self.encoder.append(

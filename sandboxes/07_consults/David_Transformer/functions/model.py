@@ -113,8 +113,6 @@ class ConsultFormer(nn.Module):
             padding_size            : int = 5000,
             embedding_dim           : int = 512,
             num_embeddings          : int = 5001,
-            tokenizer_vocab_path    : str = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/vocab.json', 
-            tokenizer_merges_path   : str = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/merges.txt', 
             *args,
             **kwargs
         ):
@@ -152,10 +150,11 @@ class ConsultFormer(nn.Module):
         
         # Creazione del layer di embedding
         self.embedder = nn.Embedding(
-            device = device, 
             embedding_dim = embedding_dim,
             num_embeddings = num_embeddings
         )
+        
+        self.embedder = self.embedder.to(device)
         
         # Definizione del positional embedding
         self.pos_emb = RotaryEmbedding(dim = self.dim_head)

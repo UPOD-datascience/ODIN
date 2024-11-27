@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset,DataLoader
+from torch.utils.data import Dataset
 import torch
 import os
 import numpy as np
@@ -180,6 +180,6 @@ def generate_dataset_whole_text(
 # Codice di test
 if __name__ == '__main__':
     os.chdir(r'C:\Users\jvitale\data')
-    data = EHR(root='./whole_text_dataset',split='train')
+    data = EHR(root='./whole_text_dataset', split='train')
 
     print(data.__getitem__(0))

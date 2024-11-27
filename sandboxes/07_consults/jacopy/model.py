@@ -95,7 +95,6 @@ class ConsultFormer(nn.Module):
             self, 
             tokenizer_vocab_path: str = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/vocab.json', 
             tokenizer_merges_path: str = './sandboxes/07_consults/pretrained/DutchEHRTokenizer/merges.txt', 
-            block_size,
             embedding_dim: int = 512,
             num_embeddings: int = 5001,
             N: int = 5,

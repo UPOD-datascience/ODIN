@@ -18,16 +18,21 @@ def train(model, dataloader, optimizer, criterion, device, epoch, writer):
     # targets = subject.label
     for inputs, targets in dataloader:
         targets = targets.to(device).squeeze()
-
+        
+        #print(inputs, '\n', targets)
+        
         optimizer.zero_grad()
         outputs = model(inputs)
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
-
+        
+        print(targets)
         
         probas = outputs.softmax(1) # eval probas over classes
         all_probas.append(probas)
+        
+        print(outputs, outputs.shape)
         
         preds = torch.argmax(probas,1) # prediction argmax the probas
         all_preds.append(preds) # store preds
@@ -54,6 +59,8 @@ def train(model, dataloader, optimizer, criterion, device, epoch, writer):
     writer.add_scalar('F1-Score/train' , f1      , epoch)
     writer.add_scalar('Precision/train', prc     , epoch)
     writer.add_scalar('MCC-Score/train', mcc     , epoch)
+    
+    print(f'outputs: {outputs}, probas: {probas.shape}, all_probas: {all_probas.shape}')
 
     for class_idx in range(2):
         writer.add_histogram(f'probabilities/class_{class_idx}', all_probas[:, class_idx], global_step=0)

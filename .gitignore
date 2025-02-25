@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 
 *.joblib
+.joblib
+*.tfevents.*
 
 # C extensions
 *.so

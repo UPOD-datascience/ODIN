@@ -1,0 +1,187 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+'''
+# Pre-trained embedding example
+vocab_size = 50000
+embedding_dim = 128
+pre_embedding_dim = 300
+pretrained_embeddings = torch.rand(vocab_size, pre_embedding_dim)  # Example pre-trained embeddings
+
+model = BiGRUClassifier(
+    vocab_size=vocab_size,
+    embedding_dim=embedding_dim,
+    pre_embedding_dim=pre_embedding_dim,
+    maxlen=256,
+    num_layers=128,
+    num_classes=5,
+    dropout=0.5,
+    pre_trained_embeddings=pretrained_embeddings,
+    freeze_embeddings=True
+)
+
+# Example input (batch size 16, sequence length 256)
+input_data = torch.randint(0, vocab_size, (16, 256))
+output = model(input_data)
+print(output.shape)  # (16, 5)
+'''
+
+class BiLSTMClassifier(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, pre_embedding_dim, maxlen, num_layers, num_classes, dropout=0.0, pre_trained_embeddings=None, freeze_embeddings=True):
+        super(BiLSTMClassifier, self).__init__()
+        # Trainable embedding layer
+        self.trainable_embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
+
+        # Pre-trained embedding layer
+        if pre_trained_embeddings is not None:
+            self.pretrained_embedding = nn.Embedding.from_pretrained(pre_trained_embeddings, freeze=freeze_embeddings, padding_idx=0)
+            self.embedding_output_dim = embedding_dim + pre_embedding_dim
+        else:
+            self.pretrained_embedding = None
+            self.embedding_output_dim = embedding_dim
+
+        self.bilstm = nn.LSTM(self.embedding_output_dim, num_layers, bidirectional=True, batch_first=True)
+        self.global_max_pool = nn.AdaptiveMaxPool1d(1)
+        
+        self.fc = nn.Linear(num_layers * 2, num_classes)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        trainable_emb = self.trainable_embedding(x)
+        if self.pretrained_embedding is not None:
+            pretrained_emb = self.pretrained_embedding(x)
+            x = torch.cat([trainable_emb, pretrained_emb], dim=-1)
+        else:
+            x = trainable_emb
+
+        x, _ = self.bilstm(x)
+        x = x.permute(0, 2, 1)  # For pooling
+        x = self.global_max_pool(x).squeeze(-1)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
+    
+class BiLSTMClassifierWithAttention(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, pre_embedding_dim, maxlen, num_layers, num_classes, dropout=0.0, pre_trained_embeddings=None, freeze_embeddings=True):
+        super(BiLSTMClassifierWithAttention, self).__init__()
+        # Trainable embedding layer
+        self.trainable_embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
+
+        # Pre-trained embedding layer
+        if pre_trained_embeddings is not None:
+            self.pretrained_embedding = nn.Embedding.from_pretrained(pre_trained_embeddings, freeze=freeze_embeddings, padding_idx=0)
+            self.embedding_output_dim = embedding_dim + pre_embedding_dim
+        else:
+            self.pretrained_embedding = None
+            self.embedding_output_dim = embedding_dim
+
+        self.bilstm = nn.LSTM(self.embedding_output_dim, num_layers, bidirectional=True, batch_first=True)
+        
+        # Attention mechanism
+        self.attention_fc = nn.Linear(num_layers * 2, 1)  # Calculate attention weights
+        self.attention_softmax = nn.Softmax(dim=1)  # Normalize attention weights
+        
+        self.fc = nn.Linear(num_layers * 2, num_classes)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        trainable_emb = self.trainable_embedding(x)
+        if self.pretrained_embedding is not None:
+            pretrained_emb = self.pretrained_embedding(x)
+            x = torch.cat([trainable_emb, pretrained_emb], dim=-1)
+        else:
+            x = trainable_emb
+
+        x, _ = self.bilstm(x)
+        
+        # Attention mechanism
+        attention_scores = self.attention_fc(x)  # (batch_size, seq_len, 1)
+        attention_weights = self.attention_softmax(attention_scores.squeeze(-1))  # (batch_size, seq_len)
+        context_vector = torch.sum(x * attention_weights.unsqueeze(-1), dim=1)  # Weighted sum (batch_size, num_layers * 2)
+
+        # Dropout and fully connected layer
+        x = self.dropout(context_vector)
+        x = self.fc(x)
+        return x
+    
+class BiGRUClassifier(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, pre_embedding_dim, maxlen, num_layers, num_classes, dropout=0.0, pre_trained_embeddings=None, freeze_embeddings=True):
+        super(BiGRUClassifier, self).__init__()
+        # Trainable embedding layer
+        self.trainable_embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
+
+        # Pre-trained embedding layer
+        if pre_trained_embeddings is not None:
+            self.pretrained_embedding = nn.Embedding.from_pretrained(pre_trained_embeddings, freeze=freeze_embeddings, padding_idx=0)
+            self.embedding_output_dim = embedding_dim + pre_embedding_dim
+        else:
+            self.pretrained_embedding = None
+            self.embedding_output_dim = embedding_dim
+
+        self.bigru = nn.GRU(self.embedding_output_dim, num_layers, bidirectional=True, batch_first=True)
+        self.global_max_pool = nn.AdaptiveMaxPool1d(1)
+        self.fc = nn.Linear(num_layers * 2, num_classes)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        trainable_emb = self.trainable_embedding(x)
+        if self.pretrained_embedding is not None:
+            pretrained_emb = self.pretrained_embedding(x)
+            x = torch.cat([trainable_emb, pretrained_emb], dim=-1)
+        else:
+            x = trainable_emb
+
+        x, _ = self.bigru(x)
+        x = x.permute(0, 2, 1)  # For pooling
+        x = self.global_max_pool(x).squeeze(-1)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
+    
+class BiGRUClassifierWithAttention(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, pre_embedding_dim, maxlen, num_layers, num_classes, dropout=0.0, pre_trained_embeddings=None, freeze_embeddings=True):
+        super(BiGRUClassifierWithAttention, self).__init__()
+        # Trainable embedding layer
+        self.trainable_embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
+
+        # Pre-trained embedding layer
+        if pre_trained_embeddings is not None:
+            self.pretrained_embedding = nn.Embedding.from_pretrained(pre_trained_embeddings, freeze=freeze_embeddings, padding_idx=0)
+            self.embedding_output_dim = embedding_dim + pre_embedding_dim
+        else:
+            self.pretrained_embedding = None
+            self.embedding_output_dim = embedding_dim
+
+        # BiGRU layer
+        self.bigru = nn.GRU(self.embedding_output_dim, num_layers, bidirectional=True, batch_first=True)
+
+        # Attention mechanism
+        self.attention_fc = nn.Linear(num_layers * 2, 1)  # Calculate attention weights
+        self.attention_softmax = nn.Softmax(dim=1)  # Normalize attention weights
+
+        # Fully connected layers
+        self.fc = nn.Linear(num_layers * 2, num_classes)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        # Embedding layer
+        trainable_emb = self.trainable_embedding(x)
+        if self.pretrained_embedding is not None:
+            pretrained_emb = self.pretrained_embedding(x)
+            x = torch.cat([trainable_emb, pretrained_emb], dim=-1)
+        else:
+            x = trainable_emb
+
+        # BiGRU layer
+        x, _ = self.bigru(x)  # x: (batch_size, seq_len, num_layers * 2)
+
+        # Attention mechanism
+        attention_scores = self.attention_fc(x)  # (batch_size, seq_len, 1)
+        attention_weights = self.attention_softmax(attention_scores.squeeze(-1))  # (batch_size, seq_len)
+        context_vector = torch.sum(x * attention_weights.unsqueeze(-1), dim=1)  # Weighted sum (batch_size, num_layers * 2)
+
+        # Dropout and fully connected layer
+        x = self.dropout(context_vector)
+        x = self.fc(x)
+        return x

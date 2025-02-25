@@ -9,8 +9,6 @@ from h_transformer_1d.reversible import ReversibleSequence, SequentialSequence
 from rotary_embedding_torch import apply_rotary_emb, RotaryEmbedding
 from einops import rearrange, repeat
 
-from transformers import PreTrainedTokenizerFast
-
 
 # helpers
 def exists(val):
@@ -117,7 +115,7 @@ class HAttention1D(nn.Module):
             self,
             dim,
             *,
-            heads = 8,
+            heads = 20,
             dim_head = 64,
             block_size = 16,
             pos_emb = None,
@@ -144,6 +142,8 @@ class HAttention1D(nn.Module):
         pad_to_len = 2 ** ceil(log2(n))
         padding = pad_to_len - n
         
+        #print(x.shape, padding, pad_to_len, n)
+        
         if padding != 0:
             x = F.pad(x, (0, 0, 0, padding), value = 0.)
             if exists(mask):
@@ -163,7 +163,7 @@ class HAttention1D(nn.Module):
         
         # rotary pos emb
         if exists(self.pos_emb):
-            freqs = self.pos_emb(torch.arange(pad_to_len, device = device), cache_key = pad_to_len)
+            freqs = self.pos_emb(torch.arange(pad_to_len, device = device))
             freqs = rearrange(freqs, 'n d -> () n d')
             q, k, v = map(lambda t: apply_rotary_emb(freqs, t), (q, k, v))
         
@@ -174,7 +174,7 @@ class HAttention1D(nn.Module):
         # coarsening
         qkvs = [(q, k, v, mask)]
         
-        for level in range(num_levels):
+        for _ in range(num_levels):
             q, k, v = map(lambda t: rearrange(t, 'b (n r) d -> b n r d', r = 2), (q, k, v))
             
             if exists(mask):
@@ -210,6 +210,7 @@ class HAttention1D(nn.Module):
             
             y = rearrange(y, 'b ... n d -> b (... n) d')
             A = rearrange(A, 'b ... i -> b (... i)')
+            
             return y, A
         
         to_blocks = lambda t: rearrange(t, 'b (n z) ... -> b n z ...', z = bsz)
@@ -262,47 +263,40 @@ class HAttention1D(nn.Module):
         return self.to_out(out[:, :n])
 
 
-# main class
-class HTransformer1D_custom(nn.Module):
+# Full Encoder
+class HTransformer1D_custom_averagePooling(nn.Module):
     def __init__(
             self,
             *,
-            tokenizer,
-            num_tokens              : int = 5001,
-            embedding_dim           : int = 512,
-            max_seq_len             : int = 4096,
-            device                  : str = 'cuda',
-            depth                   : int = 5,
-            heads                   : int = 8,
-            dim_head                : int = 64,
-            ff_mult                 : int = 4,
-            block_size              : int = 128,     # this is the Nr in the paper - Nb = (max_seq_len / tokens_per_block)
-            reversible              : bool = False,
-            shift_tokens            : bool = False
+            num_classes     : int   = 2,
+            num_tokens      : int   = 5000,
+            embedding_dim   : int   = 512,
+            max_seq_len     : int   = 8427,
+            depth           : int   = 3,
+            heads           : int   = 4,
+            dim_head        : int   = 32,
+            ff_mult         : int   = 4,
+            block_size      : int   = 64,     # this is the Nr in the paper - Nb = (max_seq_len / tokens_per_block)
+            reversible      : bool  = False,
+            shift_tokens    : bool  = False
         ):
         
         super().__init__()
+        
         assert (max_seq_len % block_size) == 0, 'maximum sequence length must be divisible by the block size'
         
         num_blocks = max_seq_len // block_size
         assert log2(max_seq_len // block_size).is_integer(), f'number of blocks {num_blocks} must be a power of 2'
         
-        assert device in ['cuda', 'cpu'], "Device must be either 'cuda' or 'cpu'."
+        self.embedding_dim = embedding_dim
+        self.num_classes = num_classes
         
-        self.device = device
+        self.token_emb = nn.Embedding(
+            num_embeddings = num_tokens,
+            embedding_dim = embedding_dim
+        )
         
-        # Creazione della classe di Hugging Face che fornisce una versione 
-        # veloce del tokenizer, capace di applicare la tokenizzazione in 
-        # modo molto più rapido rispetto alle versioni standard
-        self.tokenizer = PreTrainedTokenizerFast(tokenizer_object = tokenizer._tokenizer)
-        
-        # Viene aggiunto il token di padding al dizionario dei token speciali
-        # del tokenizer
-        self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-        
-        self.token_emb = nn.Embedding(num_tokens, embedding_dim).to(device)
-        self.cls_token = nn.Parameter(torch.randn(1,1,embedding_dim)).to(device)
-        self.pos_emb = RotaryEmbedding(dim = dim_head).to(device)
+        self.pos_emb = RotaryEmbedding(dim = dim_head)
         
         self.max_seq_len = max_seq_len
         
@@ -324,14 +318,14 @@ class HTransformer1D_custom(nn.Module):
                 **attn_kwargs
             )
             
-            ff = FeedForward(embedding_dim, mult = ff_mult).to(device)
+            ff = FeedForward(embedding_dim, mult = ff_mult)
             
             if shift_tokens:
                 attn, ff = map(lambda t: PreShiftTokens(shift_token_ranges, t), (attn, ff))
             
             attn, ff = map(lambda t: PreNorm(embedding_dim, t), (attn, ff))
             
-            layers.append(nn.ModuleList([attn ,ff]))
+            layers.append(nn.ModuleList([attn, ff]))
         
         execute_type = ReversibleSequence if reversible else SequentialSequence
         route_attn = ((True, False),) * depth
@@ -339,45 +333,209 @@ class HTransformer1D_custom(nn.Module):
         
         self.layers = execute_type(layers, args_route = {**attn_route_map})
         
-        self.to_logits = nn.Sequential(
-            nn.LayerNorm(embedding_dim),
-            nn.Linear(embedding_dim, num_tokens)
+        self.atc_norm = nn.LazyBatchNorm1d()
+        
+        # Classification head
+        self.mlp = nn.Sequential(
+            nn.LazyLinear(self.embedding_dim//2),
+            nn.BatchNorm1d(self.embedding_dim//2),
+            nn.Dropout1d(p = 0.2),
+            nn.ReLU(),
+            nn.LazyLinear(self.embedding_dim//4),
+            nn.BatchNorm1d(self.embedding_dim//4),
+            nn.Dropout1d(p = 0.2),
+            nn.ReLU(),
+            nn.LazyLinear(self.num_classes)
         )
-
+    
     def forward(
             self, 
-            x, 
+            tokens,
+            data, 
             mask = None
         ):
         
-        # Tokenization of the text
-        with torch.no_grad():
-            
-            txt2ids = self.tokenizer(
-                x,
-                padding = 'max_length',
-                truncation = True,
-                max_length = self.max_seq_len,
-                return_length = False,
-                return_tensors = 'pt',
-                return_attention_mask = False,
-                return_token_type_ids = False
-            )['input_ids'].to(self.device)
-        
-        b, n, device = *txt2ids.shape, txt2ids.device
+        b, n = tokens.shape
         assert n <= self.max_seq_len, 'sequence length must be less than the maximum sequence length'
         
-        # Embedding of the tokens
-        x = self.token_emb(txt2ids)
+        #print(tokens.shape)
+        
+        # Tokens embedding
+        embeddings = self.token_emb(tokens)
+        
+        #print(embeddings.shape)
+        
+        # Multi-head Attention
+        attn_batch = self.layers(embeddings, mask = mask)
+        
+        #print(attn_batch.shape)
+        
+        pooled_outputs = torch.mean(attn_batch, dim=1)
+        
+        #print(pooled_outputs.shape)
+        
+        '''
+        # Isolate the cls tokens
+        cls_batch = attn_batch[:, 0, :]
+        
+        #print(f'cls: {cls_batch.shape}')
+        '''
+        
+        # Late Fusion
+        embedding_total = torch.cat([pooled_outputs, data], dim=1)
+        
+        #print(embedding_total.shape)
+        
+        # Outputs from the classification head
+        outputs = self.mlp(embedding_total.float())
+        
+        return outputs
+
+
+class HTransformer1D_custom_clsPooling(nn.Module):
+    def __init__(
+            self,
+            *,
+            num_classes     : int   = 2,
+            num_tokens      : int   = 5000,
+            embedding_dim   : int   = 512,
+            max_seq_len     : int   = 8427,
+            depth           : int   = 3,
+            heads           : int   = 4,
+            device          : str   = 'cuda',
+            dim_head        : int   = 32,
+            ff_mult         : int   = 4,
+            block_size      : int   = 64,     # this is the Nr in the paper - Nb = (max_seq_len / tokens_per_block)
+            reversible      : bool  = False,
+            shift_tokens    : bool  = False
+        ):
+        
+        super().__init__()
+        
+        assert (max_seq_len % block_size) == 0, 'maximum sequence length must be divisible by the block size'
+        
+        num_blocks = max_seq_len // block_size
+        assert log2(max_seq_len // block_size).is_integer(), f'number of blocks {num_blocks} must be a power of 2'
+        
+        self.embedding_dim = embedding_dim
+        self.num_classes = num_classes
+        
+        self.token_emb = nn.Embedding(
+            num_embeddings = num_tokens,
+            embedding_dim = embedding_dim
+        )
+        
+        self.cls_token = nn.Parameter(torch.randn(1, 1, embedding_dim))
+        
+        self.pos_emb = RotaryEmbedding(dim = dim_head)
+        
+        self.max_seq_len = max_seq_len
+        
+        self.device = device
+        
+        layers = nn.ModuleList([])
+        
+        # Creazione del riferimento alla classe HAttention1D
+        attn_class = HAttention1D
+        attn_kwargs = dict()
+        
+        shift_token_ranges = (0, 1) if shift_tokens else (-1, 0, 1)
+        
+        for _ in range(depth):
+            attn = attn_class(
+                dim = embedding_dim,
+                dim_head = dim_head,
+                heads = heads, 
+                block_size = block_size,
+                pos_emb = self.pos_emb,
+                **attn_kwargs
+            )
+            
+            ff = FeedForward(embedding_dim, mult = ff_mult)
+            
+            if shift_tokens:
+                attn, ff = map(lambda t: PreShiftTokens(shift_token_ranges, t), (attn, ff))
+            
+            attn, ff = map(lambda t: PreNorm(embedding_dim, t), (attn, ff))
+            
+            layers.append(nn.ModuleList([attn, ff]))
+        
+        execute_type = ReversibleSequence if reversible else SequentialSequence
+        route_attn = ((True, False),) * depth
+        attn_route_map = {'mask': route_attn}
+        
+        self.layers = execute_type(layers, args_route = {**attn_route_map})
+        
+        self.atc_norm = nn.LazyBatchNorm1d()
+        
+        # Classification head
+        self.mlp = nn.Sequential(
+            nn.LazyLinear(self.embedding_dim//2),
+            nn.BatchNorm1d(self.embedding_dim//2),
+            nn.Dropout1d(p = 0.2),
+            nn.ReLU(),
+            nn.LazyLinear(self.embedding_dim//4),
+            nn.BatchNorm1d(self.embedding_dim//4),
+            nn.Dropout1d(p = 0.2),
+            nn.ReLU(),
+            nn.LazyLinear(self.num_classes)
+        )
+    
+    def forward(
+            self, 
+            tokens,
+            data, 
+            masks = None
+        ):
+        
+        b, n = tokens.shape
+        assert n <= self.max_seq_len, 'sequence length must be less than the maximum sequence length'
+        
+        #print(tokens.shape)
+        
+        # Tokens embedding
+        embeddings = self.token_emb(tokens)
+        
+        cls_masks = repeat(
+            torch.tensor([[1]],dtype=torch.bool),
+            '1 d -> b d',
+            b = b
+        ).to(self.device)
+        
+        masks = torch.cat((cls_masks, masks), dim=1)
+        
+        #print(cls_masks.shape, masks.shape)
         
         #######################################
         self.cls_tokens = repeat(
             self.cls_token,
             '1 1 d -> b 1 d',
             b = b
-        ).to(self.device)
+        )
         
-        x = torch.cat((self.cls_tokens, x), dim = 1)
+        cls_embeddings = torch.cat((self.cls_tokens, embeddings), dim = 1)
         ##########################################
         
-        return self.layers(x, mask = mask)
+        #print(cls_embeddings.shape)
+        
+        #print(embeddings.shape)
+        
+        # Multi-head Attention
+        attn_batch = self.layers(cls_embeddings, mask = masks)
+        
+        #print(attn_batch.shape)
+        
+        # Isolate the cls tokens
+        cls_batch = attn_batch[:, 0, :]
+        
+        #print(cls_batch.shape, data.shape)
+        
+        # Late Fusion
+        embedding_total = torch.cat([cls_batch, data], dim=1)
+        
+        #print(embedding_total.shape)
+        
+        # Outputs from the classification head
+        outputs = self.mlp(embedding_total.float())
+        
+        return outputs

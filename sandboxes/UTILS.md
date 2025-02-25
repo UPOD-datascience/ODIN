@@ -5,4 +5,4 @@
 
 Combination are possible.
 
-`Utils` folder has a `function` module contaiing useful functions.
+`Utils` folder has a `function` module containing useful functions.

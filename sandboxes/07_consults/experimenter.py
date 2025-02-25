@@ -4,7 +4,7 @@ This file needs to train a custom model defined in jacopy/model.py, notebook sta
 
 from jacopy.data      import EHR
 from jacopy.model     import ResConsultNet
-from jacopy.runner    import train,validate,test
+from jacopy.runner    import train, test
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime as dt
@@ -12,7 +12,8 @@ from torchsummary import summary
 import torch.optim as optim
 import torch.nn as nn
 import torch
-import os,sys
+import os
+from joblib import load
 
 
 def main():
@@ -30,7 +31,7 @@ def main():
 
     '''--- Hyperparameters ---'''
     hyperparameters = {
-        'batch_size'    : 30,
+        'batch_size'    : 400,
         'num_class'     : 2,
         'epochs'        : 100,
         'learning_rate' : 3e-4
@@ -53,10 +54,15 @@ def main():
         shuffle=False,
         pin_memory=True
     )
-
+    
+    '''
+    for batch in test_loader:
+        print(batch)
+        break
+    '''
+    
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    # Devo inserire il modello ConsultFormer una volta finito
     model = ResConsultNet(
         resnet_layers = [2,2,2,2],
         pool_size = 4,
@@ -69,12 +75,12 @@ def main():
         model.parameters(), 
         lr = hyperparameters['learning_rate']
     )
-
+    
     # Scelta della loss function
     criterion = nn.CrossEntropyLoss()
-
+    
     print(model)
-
+    
     # Addestramento e valutazione delle perfomance del modello
     for epoch in range(1, hyperparameters['epochs'] + 1):
         train(
@@ -85,22 +91,13 @@ def main():
             epoch,
             writer
         )
-        
-        test(
-            model,
-            test_loader,
-            device,
-            epoch,
-            writer
-        )
-    
     
     # Non mi ricordo cosa fa questo riga di codice
     test(
         model,
         test_loader,
         device,
-        epoch+1,
+        hyperparameters['epochs'] + 1,
         writer
     )
 

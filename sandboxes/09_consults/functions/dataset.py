@@ -52,11 +52,9 @@ class EHR(Dataset):
         self.dataset_unstructured = dataset_unstructured
         self.labels = labels
         self.masks = tokens['attention_mask'].tolist()
-        self.token_ids = tokens['input_ids'].tolist()
         
     def __getitem__(self, index):
         return torch.tensor(self.dataset_unstructured.iloc[[index]].values[0][0], dtype=torch.long).squeeze(), \
-            torch.tensor(self.token_ids[index], dtype=torch.long), \
             torch.tensor(self.masks[index], dtype=torch.bool), \
             torch.tensor(self.labels.iloc[index], dtype=torch.long)
     

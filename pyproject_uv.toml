@@ -1,0 +1,56 @@
+[project]
+name            = "odin"
+version         = "0.1.0"
+description     = ""
+readme          = "README.md"
+requires-python = ">=3.11,<3.13"
+
+authors = [
+  { name = "David della Morte" },
+  { name = "Jacopo Vitale" },
+  { name = "Bram van Es" },
+]
+
+# ── Runtime dependencies ──────────────────────────────────────────
+dependencies = [
+  "scikit-learn>=1.5.2,<2.0.0",
+  "pandas>=2.2.3,<3.0.0",
+  "umap-learn>=0.5.6,<0.6.0",
+  "hiplot>=0.1.33,<0.2.0",
+  "seaborn>=0.13.2,<0.14.0",
+  "regex>=2024.9.11,<2025.0.0",
+  "RapidFuzz>=3.10.0,<4.0.0",
+  "clinlp>=0.9.0,<1.0.0",
+  "pyarrow>=17.0.0,<18.0.0",
+  "accelerate>=0.26.0,<0.27.0",
+  "transformers>=4.46.1,<5.0.0",
+  "nltk>=3.9.1,<4.0.0",
+  "xgboost>=2.1.2,<3.0.0",
+  "torch==2.5.0",                       # exact—index pinned below
+  "torchmetrics>=1.6.0,<2.0.0",
+  "einops>=0.8.0,<0.9.0",
+  "rotary-embedding-torch>=0.8.5,<0.9.0",
+  "h-transformer-1d>=0.1.9,<0.2.0",
+  "tensorboard>=2.18.0,<3.0.0",
+]
+
+# ── Development-only dependencies ─────────────────────────────────
+[dependency-groups]
+dev = [
+  "jupyter>=1.1.1,<2.0.0",
+  "ipython>=8.28.0,<9.0.0",
+]
+
+# ── Tell uv where to fetch torch wheels ───────────────────────────
+[tool.uv.sources]
+torch = { index = "torch" }
+
+[[tool.uv.index]]
+name     = "torch"
+url      = "https://download.pytorch.org/whl/cu121"
+explicit = true         # only pull packages explicitly pinned to this index
+
+# ── Build system (keep if you still build with Poetry) ────────────
+[build-system]
+requires      = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

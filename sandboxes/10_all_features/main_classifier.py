@@ -50,7 +50,8 @@ def main(
         results_folder          : str   = r'results',
         pooling                 : str   = 'cls',
         dataset_path            : str   = r'T:\lab_research\RES-Folder-UPOD\ODIN-UC4\G_Output\2_Data\parquet\df_consults_medication.parquet',
-        seed                    : int   = 42
+        seed                    : int   = 42,
+        tokenizer_path : str = r'D:\LanguageModels\Models\Tokenizers\BPE_tokenizer_medroberta'
     ):
     
     #set_seed(seed)
@@ -62,8 +63,9 @@ def main(
     # Imposta questa directory come directory corrente
     os.chdir(script_dir)
     
-    tokenizer_vocab_path  = r'C:\Users\ddellamo\OneDrive - UMC Utrecht\Bureaublad\ODIN\sandboxes\pretrained\DutchEHRTokenizer\vocab.json'
-    tokenizer_merges_path = r'C:\Users\ddellamo\OneDrive - UMC Utrecht\Bureaublad\ODIN\sandboxes\pretrained\DutchEHRTokenizer\merges.txt' 
+    tokenizer_vocab_path  = os.path.join(tokenizer_path, 'vocab.json')
+    tokenizer_merges_path = os.path.join(tokenizer_path, 'merges.txt') 
+    
     
     # Inizializzazione del tokenizer che effettua una
     # tokenizzazione basata su Byte Pair Encoding (BPE),
@@ -452,6 +454,8 @@ if __name__ == '__main__':
     parser.add_argument("--model_name", type=str, default='HTransformer', help="Name of the model")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate for the optimizer")
     parser.add_argument("--weight_decay", type=float, default=1e-3, help="Weight decay for the optimizer")
+    parser.add_argument("--pooling", type=str, default='avg', choices=['avg', 'cls'])
+    parser.add_argument("--tokenizer_path", type=str, required=True)
     
     args = parser.parse_args()
     

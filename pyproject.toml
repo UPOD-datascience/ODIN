@@ -2,7 +2,7 @@
 name = "odin"
 version = "0.1.0"
 description = ""
-authors = ["Bram van Es <bramiozo@gmail.com>"]
+authors = ["David della Morte",  "Jacopo Vitale", "Bram van Es"]
 readme = "README.md"
 
 [tool.poetry.dependencies]

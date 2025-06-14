@@ -54,7 +54,7 @@ class ResConsultNet(nn.Module):
             num_classes = num_classes
         )
     
-    def forward(self, tokens, data):
+    def forward(self, tokens, data, mask = None):
         
         #print(consults_tokens)
         

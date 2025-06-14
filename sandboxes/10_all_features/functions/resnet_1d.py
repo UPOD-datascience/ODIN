@@ -56,8 +56,7 @@ class ResNet1D(nn.Module):
                 self.backbone.append(Block(
                     out_channels = base_filters*(2**l),
                     kernel_size = 3,
-                    is_first = i==0,
-                    device = self.device
+                    is_first = i==0
                 ))
             
             if l == len(layers)-1:

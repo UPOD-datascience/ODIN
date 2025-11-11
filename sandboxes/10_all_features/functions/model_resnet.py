@@ -54,10 +54,7 @@ class ResConsultNet(nn.Module):
             num_classes = num_classes
         )
     
-    def forward(self, tokens, data, mask = None):
-        
-        #print(consults_tokens)
-        
+    def forward(self, tokens, data, mask = None):        
         embeddings = self.embeddings(tokens)
         
         # Estrazione delle features dagli embeddings ad opera della ResConsultNet

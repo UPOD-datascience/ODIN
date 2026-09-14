@@ -60,13 +60,12 @@ class ResConsultNet(nn.Module):
         # Estrazione delle features dagli embeddings ad opera della ResConsultNet
         embeddings_features = self.resnet.backbone(embeddings)
         
-        #print(consults_features,data)
-        
+       
         #print(embeddings_features.shape, data.shape)
         
         inputs = torch.cat([embeddings_features, data], dim=1)
         
-        #print(f'Embedded total shape: {embedding_total.shape}\n {embedding_total.float()}')
+        #print(f'Embedded total shape: {inputs.shape}\n {inputs.float()}')
         
         outputs = self.resnet.neural_net(inputs)
         

@@ -6,7 +6,7 @@ authors = ["David della Morte",  "Jacopo Vitale", "Bram van Es"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11,<3.13"
+python = "^3.11,<=3.14"
 scikit-learn = "^1.5.2"
 pandas = "^2.2.3"
 umap-learn = "^0.5.6"
@@ -26,6 +26,7 @@ einops = "^0.8.0"
 rotary-embedding-torch = "^0.8.5"
 h-transformer-1d = "^0.1.9"
 tensorboard = "^2.18.0"
+imblearn = "^0.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.1.1"

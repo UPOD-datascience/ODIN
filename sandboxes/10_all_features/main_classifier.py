@@ -33,7 +33,8 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from imblearn.over_sampling import RandomOverSampler
 
-
+# df_consults_medication_lab
+# df_consults_medication
 def main(
         epochs                  : int   = 10, 
         model_name              : str   = 'Resnet',
@@ -49,7 +50,7 @@ def main(
         desired_percentage      : float = 0.3,
         results_folder          : str   = r'results',
         pooling                 : str   = 'cls',
-        dataset_path            : str   = r'T:\lab_research\RES-Folder-UPOD\ODIN-UC4\G_Output\2_Data\parquet\df_consults_medication.parquet',
+        dataset_path            : str   = r'T:\lab_research\RES-Folder-UPOD\ODIN-UC4\G_Output\2_Data\parquet\df_consults_medication_lab.parquet',
         seed                    : int   = 42,
         tokenizer_path : str = r'D:\LanguageModels\Models\Tokenizers\BPE_tokenizer_medroberta'
     ):
@@ -271,7 +272,8 @@ def main(
             dataset_train,
             batch_size = batch_size,
             shuffle = True,
-            pin_memory = True
+            pin_memory = True,
+            drop_last = True
         )
         
         # Si definisce il DataLoader per il validation set
@@ -279,7 +281,8 @@ def main(
             dataset_val,
             batch_size = batch_size*2,
             shuffle = False,
-            pin_memory = True
+            pin_memory = True,
+            drop_last = False
         )
         
         print(f'Split number: {split}\n')

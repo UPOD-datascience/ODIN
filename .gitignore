@@ -5,6 +5,9 @@ __pycache__/
 *.joblib
 .joblib
 *.tfevents.*
+*.zip
+results/
+results
 
 # C extensions
 *.so

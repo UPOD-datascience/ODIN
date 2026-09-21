@@ -119,8 +119,7 @@ class HAttention1D(nn.Module):
             dim_head = 64,
             block_size = 16,
             pos_emb = None,
-            eps = 1e-8,
-            **kwargs
+            eps = 1e-8
         ):
         
         super().__init__()
@@ -274,6 +273,7 @@ class HTransformer1D_custom_averagePooling(nn.Module):
             max_seq_len     : int   = 8427,
             depth           : int   = 3,
             heads           : int   = 4,
+            device                  = None,
             dim_head        : int   = 32,
             ff_mult         : int   = 4,
             block_size      : int   = 64,     # this is the Nr in the paper - Nb = (max_seq_len / tokens_per_block)
@@ -299,6 +299,7 @@ class HTransformer1D_custom_averagePooling(nn.Module):
         self.pos_emb = RotaryEmbedding(dim = dim_head)
         
         self.max_seq_len = max_seq_len
+        self.device = torch.device(device) if exists(device) else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         layers = nn.ModuleList([])
         
@@ -402,7 +403,7 @@ class HTransformer1D_custom_clsPooling(nn.Module):
             max_seq_len     : int   = 8427,
             depth           : int   = 3,
             heads           : int   = 4,
-            device          : str   = 'cuda',
+            device                  = None,
             dim_head        : int   = 32,
             ff_mult         : int   = 4,
             block_size      : int   = 64,     # this is the Nr in the paper - Nb = (max_seq_len / tokens_per_block)
@@ -431,7 +432,7 @@ class HTransformer1D_custom_clsPooling(nn.Module):
         
         self.max_seq_len = max_seq_len
         
-        self.device = device
+        self.device = torch.device(device) if exists(device) else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         layers = nn.ModuleList([])
         
@@ -497,10 +498,10 @@ class HTransformer1D_custom_clsPooling(nn.Module):
         embeddings = self.token_emb(tokens)
         
         cls_masks = repeat(
-            torch.tensor([[1]],dtype=torch.bool),
+            torch.tensor([[1]], dtype = torch.bool, device = embeddings.device),
             '1 d -> b d',
             b = b
-        ).to(self.device)
+        )
         
         masks = torch.cat((cls_masks, masks), dim=1)
         
